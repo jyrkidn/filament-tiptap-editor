@@ -41,7 +41,8 @@ import {
     DetailsSummary,
     DetailsContent,
     CustomCodeBlockLowlight,
-    Hurdle
+    Hurdle,
+    FilamentBlock,
 } from "./extensions";
 import {lowlight} from "lowlight/lib/common";
 import {randomString} from "./utils";
@@ -128,6 +129,8 @@ document.addEventListener("alpine:init", () => {
                 exts.push(Heading.configure({levels: [1, 2, 3, 4, 5, 6]}));
             }
 
+            exts.push(FilamentBlock);
+
             return exts;
         },
         init() {
@@ -136,14 +139,14 @@ document.addEventListener("alpine:init", () => {
             editors[this.id] = new Editor({
                 element: this.$refs.element,
                 extensions: this.getExtensions(),
-                content: state?.initialValue,
+                content: state?.initialValue?.content,
                 onCreate({editor}) {
-                    _this.state = editor.getHTML();
+                    _this.state = editor.getJSON();
                     _this.$refs.textarea.value = _this.state;
                     _this.updatedAt = Date.now();
                 },
                 onUpdate({editor}) {
-                    _this.state = editor.getHTML();
+                    _this.state = editor.getJSON();
                     _this.$refs.textarea.value = _this.state;
                     _this.$refs.textarea.dispatchEvent(new Event("input"));
                     _this.updatedAt = Date.now();

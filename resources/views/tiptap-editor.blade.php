@@ -50,6 +50,7 @@
                             <x-dynamic-component component="filament-tiptap-editor::tools.{{ $tool }}" fieldId="{{ $getStatePath() }}" />
                         @endif
                     @endforeach
+                    <x-dynamic-component component="filament-tiptap-editor::tools.blocks" fieldId="{{ $getStatePath() }}" :blocks="$getBlocks()"/>
                 </div>
                 <div class="flex flex-wrap items-start self-stretch gap-1 p-1 pl-2 tiptap-toolbar-right">
                     <x-filament-tiptap-editor::tools.undo />
