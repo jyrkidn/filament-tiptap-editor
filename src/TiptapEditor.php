@@ -4,7 +4,7 @@ namespace FilamentTiptapEditor;
 
 use Closure;
 use Filament\Forms\ComponentContainer;
-use Filament\Pages\Actions\Action;
+use Filament\Forms\Components\Actions\Action;
 use FilamentTiptapEditor\Components\Block;
 use Illuminate\Support\Arr;
 use Filament\Forms\Components\Field;
@@ -13,6 +13,7 @@ use Filament\Forms\Components\Concerns\CanBeLengthConstrained;
 use Filament\Forms\Components\Concerns\HasExtraInputAttributes;
 use Filament\Forms\Components\Contracts\CanBeLengthConstrained as CanBeLengthConstrainedContract;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Str;
 
 class TiptapEditor extends Field implements CanBeLengthConstrainedContract
 {
@@ -54,6 +55,13 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
             $component->state($items);
         });
 
+        $this->dehydrateStateUsing(static function ($state) {
+            $state = (new \Tiptap\Editor)
+                ->setContent($state)
+                ->getJSON();
+            dd($state);
+        });
+
         $this->registerListeners([
            'tiptapeditor::createItem' => [
                function (TiptapEditor $component, string $statePath, string $block): void {
@@ -68,24 +76,25 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
 
                     $blockData = collect($block->getChildComponents())->mapWithKeys(static fn ($item) => [(string) $item->getName() => '']);
 
-                    $action = Action::make('test')
-                        ->icon('heroicon-s-cog')
-                        ->iconButton()
-                        ->action(function (array $data): void {
-                            ray($data);
-                        })
-                        ->form($block->getChildComponents());
-
                     $livewire->dispatchBrowserEvent('insert-block', [
                         'fieldId' => $statePath,
                         'attributes' => [
                             'type' => $block->getName(),
                             'data' => $blockData,
-                            'html' => static::minify(Blade::render($block->getView(), ['block' => $block, 'data' => $blockData, 'action' => $action]))
+                            'html' => static::minify(Blade::render($block->getView(), ['block' => $block, 'data' => $blockData, 'fieldId' => $statePath]))
                         ]
                     ]);
                }
            ],
+            'tiptapeditor::openBlockSettingsModal' => [
+                function (TiptapEditor $component, string $statePath, string $block): void {
+                    if ($statePath !== $component->getStatePath()) {
+                        return;
+                    }
+
+                    ray('open settings modal');
+                }
+            ]
         ]);
     }
 
@@ -210,10 +219,10 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
         $search = array(
 
             // Remove whitespaces after tags
-            '/\>[^\S ]+/s',
+            '/>[^\S ]+/s',
 
             // Remove whitespaces before tags
-            '/[^\S ]+\</s',
+            '/[^\S ]+</s',
 
             // Remove multiple whitespace sequences
             '/(\s)+/s',
@@ -222,7 +231,6 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
             '/<!--(.|\s)*?-->/'
         );
         $replace = array('>', '<', '\\1');
-        $html = preg_replace($search, $replace, $html);
-        return $html;
+        return preg_replace($search, $replace, $html);
     }
 }

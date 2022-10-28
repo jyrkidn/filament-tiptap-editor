@@ -3,7 +3,10 @@
     'dark:text-white dark:bg-gray-900' => config('filament.dark_mode'),
 ])>
     <h3 class="!text-sm">{{ $block->getLabel() }}</h3>
-    {{ $action }}
+    <button type="button" x-on:click="console.log('open block settings modal')">
+        <span class="sr-only">Update Block Data</span>
+        @svg('heroicon-s-cog', 'w-4 h-4')
+    </button>
 </div>
 <div @class([
     'bg-gray-100 rounded-b p-4 border-x border-b border-gray-200',
