@@ -30,7 +30,7 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
 
     public string $profile = 'default';
 
-    protected ?array $tools = [];
+    protected ?array $tools = null;
 
     protected ?string $disk = null;
 
@@ -42,6 +42,8 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
 
     protected null | string $output = null;
 
+    protected array $registeredTools = [];
+
     /**
      * @throws InvalidOutputFormatException
      */
@@ -49,7 +51,7 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
     {
         parent::setUp();
 
-        $this->profile = implode(',', config('filament-tiptap-editor.profiles.default'));
+        $this->tools = config('filament-tiptap-editor.profiles.default');
         $this->output(config('filament-tiptap-editor.output'));
         $this->validateOutputFormat();
 
@@ -134,7 +136,8 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
 
     public function profile(?string $profile): static
     {
-        $this->profile = implode(',', config('filament-tiptap-editor.profiles.' . $profile));
+        $this->profile = $profile;
+        $this->tools = config('filament-tiptap-editor.profiles.' . $profile);
 
         return $this;
     }
@@ -142,6 +145,18 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
     public function tools(array $tools): static
     {
         $this->tools = $tools;
+
+        return $this;
+    }
+
+    public function registerTool(string $id, string $name, string $view, string $source): static
+    {
+        $this->registeredTools[] = [
+            'id' => $id,
+            'name' => $name,
+            'view' => $view,
+            'source' => $source,
+        ];
 
         return $this;
     }
@@ -185,9 +200,14 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
         return $this;
     }
 
-    public function getTools(): string
+    public function getTools(): array
     {
-        return !$this->tools ? $this->profile : implode(',', $this->tools);
+        return $this->tools;
+    }
+
+    public function getRegisteredTools(): array
+    {
+        return $this->registeredTools;
     }
 
     public function getDisk(): string

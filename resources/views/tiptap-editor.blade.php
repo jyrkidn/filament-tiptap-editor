@@ -1,5 +1,7 @@
 @php
     $tools = $getTools();
+    $registeredTools = $getRegisteredTools();
+    $statePath = $getStatePath();
 @endphp
 
 <x-forms::field-wrapper :id="$getId()"
@@ -11,8 +13,8 @@
     :state-path="$getStatePath()">
     <div @class([
         'tiptap-editor border rounded-md relative bg-white shadow-sm dark:bg-gray-700',
-        'border-gray-200 dark:border-gray-600' => ! $errors->has($getStatePath()),
-        'border-danger-600 ring-danger-600' => $errors->has($getStatePath()),
+        'border-gray-200 dark:border-gray-600' => ! $errors->has($statePath),
+        'border-danger-600 ring-danger-600' => $errors->has($statePath),
     ])>
         @if ($isDisabled())
             <div class="relative z-0 tiptap-wrapper">
@@ -30,8 +32,9 @@
             class="relative z-0 tiptap-wrapper bg-white dark:bg-gray-700 rounded-md"
             x-bind:class="{ 'tiptap-fullscreen': fullScreenMode, 'ring ring-primary-500': focused }"
             x-data="tiptap({
-                state: $wire.entangle('{{ $getStatePath() }}').defer,
-                tools: '{{ $tools }}',
+                state: $wire.entangle('{{ $statePath }}').defer,
+                tools: '{{ implode(',', $tools) }}',
+                registeredTools: @js($registeredTools),
                 output: '{{ $getOutput() }}',
             })"
             x-on:keydown.escape="fullScreenMode = false"
@@ -43,12 +46,15 @@
             <div class="tiptap-toolbar border-b border-gray-200 bg-gray-50 divide-x divide-gray-300 rounded-t-md z-[1] relative flex flex-col md:flex-row dark:border-gray-900 dark:bg-gray-900 dark:divide-gray-700">
 
                 <div class="flex flex-wrap items-center flex-1 gap-1 p-1 tiptap-toolbar-left">
-                    @foreach(explode(',', $getTools()) as $tool)
+                    @foreach($tools as $tool)
                         @if ($tool === '|')
                             <div class="border-l border-gray-300 dark:border-gray-700 h-5"></div>
                         @else
-                            <x-dynamic-component component="filament-tiptap-editor::tools.{{ $tool }}" :state-path="$getStatePath()" />
+                            <x-dynamic-component component="filament-tiptap-editor::tools.{{ $tool }}" :state-path="$statePath" />
                         @endif
+                    @endforeach
+                    @foreach($registeredTools as $regTool)
+                        <x-dynamic-component component="{{ $regTool['view'] }}" :state-path="$statePath" />
                     @endforeach
                 </div>
 

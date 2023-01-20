@@ -49,7 +49,12 @@ import {randomString} from "./utils";
 document.addEventListener("alpine:init", () => {
     let editors = window.filamentTiptapEditors || {};
 
-    Alpine.data("tiptap", ({state, tools = "", output}) => ({
+    Alpine.data("tiptap", ({
+        state,
+        tools = "",
+        registeredTools = null,
+        output,
+    }) => ({
         id: null,
         tools: tools.split(","),
         state: state,
@@ -132,6 +137,14 @@ document.addEventListener("alpine:init", () => {
                 exts.push(Heading.configure({levels: [1, 2, 3, 4, 5, 6]}));
             }
 
+            if (registeredTools) {
+                registeredTools.forEach((tool) => {
+                    exts.push(tool.id);
+                });
+            }
+
+            console.log(exts)
+
             return exts;
         },
         init() {
@@ -142,33 +155,14 @@ document.addEventListener("alpine:init", () => {
                 extensions: this.getExtensions(),
                 content: state?.initialValue || '<p></p>',
                 onCreate({editor}) {
-                    switch (output) {
-                        case 'json':
-                            _this.state = editor.getJSON();
-                            break;
-                        case 'text':
-                            _this.state = editor.getText();
-                            break;
-                        default:
-                            _this.state = editor.getHTML();
-                    }
+                    _this.state = _this.getFormattedContent(editor);
                     (output === 'json')
                         ? _this.$refs.textarea.value = JSON.stringify(_this.state)
                         : _this.$refs.textarea.value = _this.state;
                     _this.updatedAt = Date.now();
                 },
                 onUpdate({editor}) {
-                    switch (output) {
-                        case 'json':
-                            _this.state = editor.getJSON();
-                            break;
-                        case 'text':
-                            _this.state = editor.getText();
-                            break;
-                        default:
-                            _this.state = editor.getHTML();
-                    }
-
+                    _this.state = _this.getFormattedContent(editor);
                     (output === 'json')
                         ? _this.$refs.textarea.value = JSON.stringify(_this.state)
                         : _this.$refs.textarea.value = _this.state;
@@ -218,5 +212,15 @@ document.addEventListener("alpine:init", () => {
         isActive(type, opts = {}, updatedAt) {
             return this.editor().isActive(type, opts);
         },
+        getFormattedContent(editor) {
+            switch (output) {
+                case 'json':
+                    return editor.getJSON();
+                case 'text':
+                    return editor.getText();
+                default:
+                    return editor.getHTML();
+            }
+        }
     }));
 });
