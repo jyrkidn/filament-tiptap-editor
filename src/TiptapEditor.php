@@ -42,7 +42,7 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
 
     protected null | string $output = null;
 
-    protected array $registeredTools = [];
+    protected array $extensions = [];
 
     /**
      * @throws InvalidOutputFormatException
@@ -54,6 +54,8 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
         $this->tools = config('filament-tiptap-editor.profiles.default');
         $this->output(config('filament-tiptap-editor.output'));
         $this->validateOutputFormat();
+
+        $this->extensions = config('filament-tiptap-editor.extensions') ?? [];
 
         $this->beforeStateDehydrated(function(TiptapEditor $component, string | array | null $state) {
             if ($state && $this->output === self::OUTPUT_JSON) {
@@ -149,18 +151,6 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
         return $this;
     }
 
-    public function registerTool(string $id, string $name, string $view, string $source): static
-    {
-        $this->registeredTools[] = [
-            'id' => $id,
-            'name' => $name,
-            'view' => $view,
-            'source' => $source,
-        ];
-
-        return $this;
-    }
-
     public function disk(?string $disk): static
     {
         $this->disk = $disk;
@@ -202,12 +192,15 @@ class TiptapEditor extends Field implements CanBeLengthConstrainedContract
 
     public function getTools(): array
     {
-        return $this->tools;
-    }
+        $extensions = collect($this->extensions);
 
-    public function getRegisteredTools(): array
-    {
-        return $this->registeredTools;
+        foreach ($this->tools as $k => $tool) {
+            if ($ext = $extensions->where('id', $tool)->first()) {
+                $this->tools[$k] = $ext;
+            }
+        }
+
+        return $this->tools;
     }
 
     public function getDisk(): string

@@ -17,10 +17,6 @@ class FilamentTiptapEditorServiceProvider extends PluginServiceProvider
         'filament-tiptap-editor-styles' => __DIR__ . '/../resources/dist/filament-tiptap-editor.css',
     ];
 
-    protected array $beforeCoreScripts = [
-        'filament-tiptap-editor-scripts' => __DIR__ . '/../resources/dist/filament-tiptap-editor.js',
-    ];
-
     public function configurePackage(Package $package): void
     {
         $package
@@ -29,6 +25,27 @@ class FilamentTiptapEditorServiceProvider extends PluginServiceProvider
             ->hasAssets()
             ->hasTranslations()
             ->hasViews();
+    }
+
+    public function getBeforeCoreScripts(): array
+    {
+        $extensions = config('filament-tiptap-editor.extensions') ?? [];
+
+        $extensionSources = [];
+        foreach ($extensions as $extension) {
+            if (Str::of($extension['source'])->startsWith(['http', '\\\\'])) {
+                $extensionSources[] = $extension['source'];
+            } else {
+                $extensionSources[] = $extension['builder'] === 'mix'
+                    ? mix($extension['source'])
+                    : \Illuminate\Support\Facades\Vite::asset($extension['source']);
+            }
+        }
+
+        return [
+            'filament-tiptap-editor-scripts' => __DIR__ . '/../resources/dist/filament-tiptap-editor.js',
+            ...$extensionSources,
+        ];
     }
 
     public function boot()

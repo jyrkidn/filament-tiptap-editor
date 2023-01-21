@@ -41,186 +41,190 @@ import {
     DetailsSummary,
     DetailsContent,
     CustomCodeBlockLowlight,
-    Hurdle
 } from "./extensions";
 import {lowlight} from "lowlight/lib/common";
-import {randomString} from "./utils";
+import {randomString, dispatch} from "./utils";
+
+let editorExtensions = {
+    blockquote: [Blockquote],
+    bold: [Bold],
+    'bullet-list': [BulletList],
+    'checked-list': [CheckedList],
+    code: [Code],
+    'code-block': [CustomCodeBlockLowlight.configure({
+        lowlight,
+        HTMLAttributes: {
+            class: "hljs",
+        },
+    })],
+    color: [Color, TextStyle],
+    details: [Details, DetailsSummary, DetailsContent],
+    grid: [Grid, GridColumn],
+    heading: [Heading.configure({levels: [1, 2, 3, 4, 5, 6]})],
+    highlight: [Highlight],
+    hr: [HorizontalRule],
+    italic: [Italic],
+    lead: [Lead],
+    link: [CustomLink.configure({
+        openOnClick: false,
+        autolink: false,
+        HTMLAttributes: {
+            rel: null,
+            hreflang: null,
+            class: null,
+        },
+    })],
+    media: [CustomImage.configure({inline: true})],
+    oembed: [Youtube, Vimeo],
+    'ordered-list': [OrderedList],
+    small: [Small],
+    strike: [Strike],
+    subscript: [Subscript],
+    superscript: [Superscript],
+    table: [Table.configure({resizable: true}), TableHeader, TableCell, TableRow],
+    underline: [Underline],
+};
+
+window.registerTiptapEditorExtension = (key, script) => {
+    editorExtensions[key] = [script];
+}
 
 document.addEventListener("alpine:init", () => {
-    let editors = window.filamentTiptapEditors || {};
-
     Alpine.data("tiptap", ({
-        state,
-        tools = "",
-        registeredTools = null,
-        output,
-    }) => ({
-        id: null,
-        tools: tools.split(","),
-        state: state,
-        fullScreenMode: false,
-        updatedAt: Date.now(),
-        focused: false,
-        getExtensions() {
-            let exts = [Document, Text, CustomParagraph, Dropcursor, Gapcursor, HardBreak, History];
+        state = null,
+        tools = [],
+        output = 'html'
+    }) => {
+        let editors = window.filamentTiptapEditors || {};
 
-            if (this.tools.includes("blockquote")) exts.push(Blockquote);
-            if (this.tools.includes("bold")) exts.push(Bold);
-            if (this.tools.includes("italic")) exts.push(Italic);
-            if (this.tools.includes("strike")) exts.push(Strike);
-            if (this.tools.includes("underline")) exts.push(Underline);
-            if (this.tools.includes("subscript")) exts.push(Subscript);
-            if (this.tools.includes("superscript")) exts.push(Superscript);
-            if (this.tools.includes("media")) exts.push(CustomImage.configure({inline: true}));
-            if (this.tools.includes("oembed")) {
-                exts.push(Youtube);
-                exts.push(Vimeo);
-            }
-            if (this.tools.includes("hr")) exts.push(HorizontalRule);
-            if (this.tools.includes("lead")) exts.push(Lead);
-            if (this.tools.includes("small")) exts.push(Small);
-            if (this.tools.includes("grid")) exts.push(Grid, GridColumn);
-            if (this.tools.includes("details")) exts.push(Details, DetailsSummary, DetailsContent);
-            if (this.tools.includes("color")) exts.push(Color, TextStyle);
-            if (this.tools.includes("table")) exts.push(Table.configure({resizable: true}), TableHeader, TableCell, TableRow);
-            if (this.tools.includes("code")) exts.push(Code);
-            if (this.tools.includes("highlight")) exts.push(Highlight);
-            if (this.tools.includes("hurdle")) exts.push(Hurdle);
+        dispatch(document, 'tiptapeditor:init');
 
-            if (
-                this.tools.includes("align-left") ||
-                this.tools.includes("align-center") ||
-                this.tools.includes("align-right") ||
-                this.tools.includes("align-justify")
-            ) {
-                const alignments = [];
-                const types = ["paragraph"];
-                if (this.tools.includes("align-left")) alignments.push('left');
-                if (this.tools.includes("align-center")) alignments.push('center');
-                if (this.tools.includes("align-right")) alignments.push('right');
-                if (this.tools.includes("align-justify")) alignments.push('justify');
-                if (this.tools.includes("heading")) types.push('heading');
-                exts.push(TextAlign.configure({types, alignments}));
-            }
+        return {
+            id: null,
+            tools: tools,
+            state: state,
+            fullScreenMode: false,
+            updatedAt: Date.now(),
+            focused: false,
+            getExtensions() {
+                const tools = this.tools.map((tool) => {
+                    if (typeof tool === 'string') {
+                        return tool;
+                    }
 
-            if (this.tools.includes("link"))
-                exts.push(
-                    CustomLink.configure({
-                        openOnClick: false,
-                        autolink: false,
-                        HTMLAttributes: {
-                            rel: null,
-                            hreflang: null,
-                            class: null,
-                        },
+                    return tool.id;
+                })
+
+                let exts = [Document, Text, CustomParagraph, Dropcursor, Gapcursor, HardBreak, History];
+
+                if (tools.length) {
+
+                    const keys = Object.keys(editorExtensions);
+                    let alignments = [];
+                    let types = ['paragraph'];
+
+                    tools.forEach((tool) => {
+                        if (keys.includes(tool)) {
+                            editorExtensions[tool].forEach((e) => {
+                                if (['ordered-list', 'bullet-list', 'checked-list'].includes(tool)) {
+                                    exts.push(e)
+                                    if (!exts.includes(ListItem)) exts.push(ListItem);
+                                } else {
+                                    exts.push(e)
+                                }
+                            })
+                        } else {
+                            if (['align-left', 'align-right', 'align-center', 'align-justify'].includes(tool)) {
+                                if (tool === "align-left") alignments.push('left');
+                                if (tool === "align-center") alignments.push('center');
+                                if (tool === "align-right") alignments.push('right');
+                                if (tool === "align-justify") alignments.push('justify');
+                                if (tools.includes("heading")) types.push('heading');
+                                let hasTextAlign = exts.find((item) => item.name === 'textAlign');
+                                if (typeof hasTextAlign === "undefined") exts.push(TextAlign.configure({types, alignments}));
+                            }
+                        }
                     })
-                );
-
-            if (this.tools.includes("code-block"))
-                exts.push(
-                    CustomCodeBlockLowlight.configure({
-                        lowlight,
-                        HTMLAttributes: {
-                            class: "hljs",
-                        },
-                    })
-                );
-
-            if (this.tools.includes("ordered-ist") || this.tools.includes("bullet-list") || this.tools.includes("checked-list")) {
-                if (this.tools.includes("ordered-list")) exts.push(OrderedList);
-                if (this.tools.includes("bullet-list")) exts.push(BulletList);
-                if (this.tools.includes("checked-list")) exts.push(CheckedList);
-                exts.push(ListItem);
-            }
-
-            if (this.tools.includes("heading")) {
-                exts.push(Heading.configure({levels: [1, 2, 3, 4, 5, 6]}));
-            }
-
-            if (registeredTools) {
-                registeredTools.forEach((tool) => {
-                    exts.push(tool.id);
-                });
-            }
-
-            console.log(exts)
-
-            return exts;
-        },
-        init() {
-            this.id = randomString(8);
-            let _this = this;
-            editors[this.id] = new Editor({
-                element: this.$refs.element,
-                extensions: this.getExtensions(),
-                content: state?.initialValue || '<p></p>',
-                onCreate({editor}) {
-                    _this.state = _this.getFormattedContent(editor);
-                    (output === 'json')
-                        ? _this.$refs.textarea.value = JSON.stringify(_this.state)
-                        : _this.$refs.textarea.value = _this.state;
-                    _this.updatedAt = Date.now();
-                },
-                onUpdate({editor}) {
-                    _this.state = _this.getFormattedContent(editor);
-                    (output === 'json')
-                        ? _this.$refs.textarea.value = JSON.stringify(_this.state)
-                        : _this.$refs.textarea.value = _this.state;
-
-                    _this.$refs.textarea.dispatchEvent(new Event("input"));
-                    _this.updatedAt = Date.now();
-                },
-                onSelectionUpdate({editor}) {
-                    _this.updatedAt = Date.now();
-                },
-                onBlur({event}) {
-                    _this.focused = false;
-                    _this.$refs.textarea.dispatchEvent(new Event("change"));
-                    _this.updatedAt = Date.now();
-                },
-                onFocus({event}) {
-                    _this.focused = true;
-                },
-            });
-
-            window.filamentTiptapEditors = editors;
-
-            document.addEventListener("dblclick", function (e) {
-                if (e.target && (e.target.hasAttribute("data-youtube-video") || e.target.hasAttribute("data-vimeo-video"))) {
-                    e.target.firstChild.style.pointerEvents = "all";
                 }
-            });
 
-            let sortableEl = this.$el.parentElement.closest("[wire\\:sortable]");
-            if (sortableEl) {
-                window.Sortable.utils.on(sortableEl, "start", (event) => {
-                    Object.values(editors).forEach(function (editor) {
-                        editor.setEditable(false);
-                    });
+                return exts;
+            },
+            init() {
+                this.id = randomString(8);
+                let _this = this;
+
+                editors[this.id] = new Editor({
+                    element: this.$refs.element,
+                    extensions: this.getExtensions(),
+                    content: state?.initialValue || '<p></p>',
+                    onCreate({editor}) {
+                        _this.state = _this.getFormattedContent(editor);
+                        _this.updateTextArea();
+                        _this.updatedAt = Date.now();
+                    },
+                    onUpdate({editor}) {
+                        _this.state = _this.getFormattedContent(editor);
+                        _this.updateTextArea();
+                        _this.$refs.textarea.dispatchEvent(new Event("input"));
+                        _this.updatedAt = Date.now();
+                    },
+                    onSelectionUpdate() {
+                        _this.updatedAt = Date.now();
+                    },
+                    onBlur() {
+                        _this.focused = false;
+                        _this.$refs.textarea.dispatchEvent(new Event("change"));
+                        _this.updatedAt = Date.now();
+                    },
+                    onFocus() {
+                        _this.focused = true;
+                    },
                 });
 
-                window.Sortable.utils.on(sortableEl, "end", (event) => {
-                    Object.values(editors).forEach(function (editor) {
-                        editor.setEditable(true);
-                    });
+                window.filamentTiptapEditors = editors;
+
+                document.addEventListener("dblclick", function (e) {
+                    if (e.target && (e.target.hasAttribute("data-youtube-video") || e.target.hasAttribute("data-vimeo-video"))) {
+                        e.target.firstChild.style.pointerEvents = "all";
+                    }
                 });
-            }
-        },
-        editor() {
-            return editors[this.id];
-        },
-        isActive(type, opts = {}, updatedAt) {
-            return this.editor().isActive(type, opts);
-        },
-        getFormattedContent(editor) {
-            switch (output) {
-                case 'json':
-                    return editor.getJSON();
-                case 'text':
-                    return editor.getText();
-                default:
-                    return editor.getHTML();
+
+                let sortableEl = this.$el.parentElement.closest("[wire\\:sortable]");
+                if (sortableEl) {
+                    window.Sortable.utils.on(sortableEl, "start", () => {
+                        Object.values(editors).forEach(function (editor) {
+                            editor.setEditable(false);
+                        });
+                    });
+
+                    window.Sortable.utils.on(sortableEl, "end", () => {
+                        Object.values(editors).forEach(function (editor) {
+                            editor.setEditable(true);
+                        });
+                    });
+                }
+            },
+            editor() {
+                return editors[this.id];
+            },
+            isActive(type, opts = {}) {
+                return this.editor().isActive(type, opts);
+            },
+            getFormattedContent(editor) {
+                switch (output) {
+                    case 'json':
+                        return editor.getJSON();
+                    case 'text':
+                        return editor.getText();
+                    default:
+                        return editor.getHTML();
+                }
+            },
+            updateTextArea() {
+                (output === 'json')
+                    ? this.$refs.textarea.value = JSON.stringify(this.state)
+                    : this.$refs.textarea.value = this.state;
             }
         }
-    }));
+    });
 });

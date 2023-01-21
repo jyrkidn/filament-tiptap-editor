@@ -1,6 +1,5 @@
 @php
     $tools = $getTools();
-    $registeredTools = $getRegisteredTools();
     $statePath = $getStatePath();
 @endphp
 
@@ -29,14 +28,13 @@
         @else
         <div
             wire:ignore
-            class="relative z-0 tiptap-wrapper bg-white dark:bg-gray-700 rounded-md"
-            x-bind:class="{ 'tiptap-fullscreen': fullScreenMode, 'ring ring-primary-500': focused }"
             x-data="tiptap({
                 state: $wire.entangle('{{ $statePath }}').defer,
-                tools: '{{ implode(',', $tools) }}',
-                registeredTools: @js($registeredTools),
+                tools: @js($tools),
                 output: '{{ $getOutput() }}',
             })"
+            class="relative z-0 tiptap-wrapper bg-white dark:bg-gray-700 rounded-md"
+            x-bind:class="{ 'tiptap-fullscreen': fullScreenMode, 'ring ring-primary-500': focused }"
             x-on:keydown.escape="fullScreenMode = false"
             x-trap.noscroll="fullScreenMode"
         >
@@ -49,12 +47,11 @@
                     @foreach($tools as $tool)
                         @if ($tool === '|')
                             <div class="border-l border-gray-300 dark:border-gray-700 h-5"></div>
+                        @elseif (is_array($tool))
+                            <x-dynamic-component component="{{ $tool['view'] }}" :state-path="$statePath" />
                         @else
                             <x-dynamic-component component="filament-tiptap-editor::tools.{{ $tool }}" :state-path="$statePath" />
                         @endif
-                    @endforeach
-                    @foreach($registeredTools as $regTool)
-                        <x-dynamic-component component="{{ $regTool['view'] }}" :state-path="$statePath" />
                     @endforeach
                 </div>
 
