@@ -47,6 +47,7 @@ import {
     BubbleMenu,
     FloatingMenu,
     Video,
+    JumpLink,
 } from "./extensions";
 import {lowlight} from "lowlight/lib/common";
 import {randomString} from "./utils";
@@ -72,6 +73,7 @@ let editorExtensions = {
     hr: [HorizontalRule],
     hurdle: [Hurdle],
     italic: [Italic],
+    'jump-link': [JumpLink],
     lead: [Lead],
     link: [CustomLink.configure({
         openOnClick: false,
@@ -155,7 +157,8 @@ document.addEventListener("alpine:init", () => {
                             isActive(state, 'oembed') ||
                             isActive(state, 'vimeo') ||
                             isActive(state, 'youtube') ||
-                            isActive(state, 'video')
+                            isActive(state, 'video') ||
+                            isActive(state, 'jumpLink')
                         );
                     },
                 }))
@@ -166,6 +169,9 @@ document.addEventListener("alpine:init", () => {
                         element: this.$refs.defaultFloatingMenu,
                         tippyOptions: {
                             duration: [500,0],
+                        },
+                        shouldShow: ({state}) => {
+                            return ! (isActive(state, 'jumpLink'))
                         }
                     }))
 

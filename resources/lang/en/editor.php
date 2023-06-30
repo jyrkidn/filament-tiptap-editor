@@ -63,6 +63,7 @@ return [
     ],
     'hr' => 'Horizontal Rule',
     'italic' => 'Italic',
+    'jump_link' => 'Jump Link',
     'lead' => 'Lead Paragraph',
     'link' => [
         'insert_edit' => 'Insert / Edit Link',
